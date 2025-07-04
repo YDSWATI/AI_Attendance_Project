@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Students - {{ course.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap">
+    <style>
+        body {
+            background-color: #343a40;
+            color: #f8f9fa;
+            font-family: 'Ubuntu', sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .student-container, .register-container {
+            background-color: #212529;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 1px 2px 71px -6px rgba(0, 0, 0, 0.67);
+            margin-bottom: 30px;
+        }
+        h1, h2 {
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 2.5em;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #6c757d;
+            color: #f8f9fa;
+        }
+        input:focus {
+            outline: none;
+            border: 5px solid #06d6a0;
+            box-shadow: 0 0 10px rgba(6, 214, 160, 0.5);
+        }
+        button, .btn-toggle {
+            width: 100%;
+            padding: 10px;
+            background-color: #248277;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-ta, .btn-sa {
+            width: 100%;
+            padding: 10px;
+            background-color: #248277;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+            text-decoration: none; /* Remove underline from link */
+            text-align: center; 
+        }
+        button:hover, .btn-toggle:hover, .btn-ta:hover, .btn-sa:hover {
+            background-color: #036666;
+        }
+        .student-list {
+            margin-top: 20px;
+        }
+        .student-item {
+            background-color: #6c757d;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header for Attendance Management System -->
+        <div class="header">
+            <h1>Attendance Management System</h1>
+        </div>
+
+        <!-- Registered Students Container -->
+        <div class="student-container">
+            <h2>Registered Students</h2>
+            <button class="btn-toggle" onclick="toggleStudentList()">Display Registered Students</button>
+            <div id="student-list" class="student-list">
+                <!-- List of registered students -->
+                {% for student in students %}
+                    <div class="student-item">
+                        <div>{{ student.name }}</div>
+                        <div>Roll No: {{ student.roll_number }}</div>
+                    </div>
+                {% empty %}
+                    <div class="student-item">No students registered yet.</div>
+                {% endfor %}
+            </div>
+            <!-- Button to go to the attendance page -->
+            <div class="btn-ta">
+                <a href="{% url 'attendance' course.id %}" class="btn-ta">Take Attendance</a>
+            </div>
+            <!-- Button to show attendance -->
+            <div class="btn-sa">
+                <a href="{% url 'show_attendance' course.id %}" class="btn-sa">Show Attendance</a>
+            </div>
+        </div>
+
+        <!-- Register Students Container -->
+        <div class="register-container">
+            <h1>Register Students for {{ course.name }}</h1>
+            <form id="studentForm" method="POST" action="{% url 'register' course.id %}" enctype="multipart/form-data" class="student-form">
+                {% csrf_token %}
+                <label for="name">Student Name</label>
+                <input type="text" name="name" id="name" placeholder="Enter student name" required>
+                
+                <label for="roll_number">Roll Number</label>
+                <input type="text" name="roll_number" id="roll_number" placeholder="Enter roll number" required>
+
+                <button type="submit">Register Student</button>
+
+                {% if error %}
+                    <div class="alert alert-danger mt-3">{{ error }}</div>
+                {% endif %}
+            </form>
+        </div>
+
+        {% comment %} <!-- Get Attendance for a Specific Date -->
+        <div class="attendance-container">
+            <h2>Check Attendance for a Specific Date</h2>
+            <form method="GET" action="{% url 'show_attendance' course.id %}">
+                <label for="attendance_date">Select Date</label>
+                <input type="date" name="attendance_date" id="attendance_date" required>
+                <button type="submit">Get Attendance</button>
+            </form>
+        </div> {% endcomment %}
+    </div>
+
+    <script>
+        // Function to toggle the visibility of the student list
+        function toggleStudentList() {
+            const studentList = document.getElementById('student-list');
+            if (studentList.style.display === "block") {
+                studentList.style.display = "none"; // Show the list
+            } else {
+                studentList.style.display = "block"; // Hide the list
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

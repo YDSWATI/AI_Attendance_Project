@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Attendance - {{ course.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #343a40;
+            color: #f8f9fa;
+            font-family: 'Ubuntu', sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .attendance-container {
+            background-color: #212529;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 1px 2px 71px -6px rgba(0, 0, 0, 0.67);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .status {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="attendance-container">
+            <h1>Take Attendance for {{ course.name }}</h1>
+            <table class="table table-dark table-striped">
+                <thead>
+                    <tr>
+                        <th>Serial No</th>
+                        <th>Student Name</th>
+                        <th>Roll No</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                        <tr id="student_{{ student.roll_number }}">
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.roll_number }}</td>
+                            <td class="status">A</td>  <!-- Default status as Absent -->
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">No students registered for this course.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <textarea id="voice_data" placeholder="Say IDs and then say 'done'" class="form-control" rows="3" readonly></textarea>
+            <button class="btn btn-primary" onclick="startRecording()">Record Attendance</button>
+            <form method="POST" action="{% url 'attendance' course.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="voice_data" id="hidden_voice_data">
+                <button type="submit" class="btn btn-success" id="saveAttendance">Save Attendance</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder, isRecording = false;
+        let audioChunks = [];
+        let spokenText = ''; // Store the spoken text
+        
+        function startRecording() {
+            if (isRecording) {
+                alert("Recording is already in progress.");
+                return;
+            }
+        
+            // Initialize Speech Recognition
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.continuous = true; // Keep recognizing until stopped
+            recognition.interimResults = false; // No intermediate results
+        
+            recognition.onstart = () => {
+                console.log("Voice recognition started.");
+                isRecording = true;
+            };
+        
+            recognition.onresult = (event) => {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0].transcript)
+                    .join(' ');
+        
+                spokenText = transcript;
+                document.getElementById('voice_data').value = spokenText; // Show current spoken text
+        
+                // Check if 'done' is detected
+                if (transcript.toLowerCase().includes("done")) {
+                    recognition.stop(); // Stop recognition when 'done' is spoken
+                }
+            };
+        
+            recognition.onerror = (event) => {
+                console.error("Error occurred in recognition: " + event.error);
+            };
+        
+            recognition.onend = () => {
+                console.log("Voice recognition ended.");
+                isRecording = false;
+                processAudio(); // Process the recorded audio after recognition ends
+            };
+        
+            recognition.start(); // Start voice recognition
+        }
+        
+        async function processAudio() {
+            // Display processed voice data
+            document.getElementById('voice_data').value = spokenText;
+        
+            // Set the hidden input field with processed voice data
+            document.getElementById('hidden_voice_data').value = spokenText;
+        
+            // Update status for each student based on voice data
+            const rollNumbers = extractRollNumbersFromVoice(spokenText);
+            rollNumbers.forEach(rollNumber => {
+                const studentRow = document.querySelector(`#student_${rollNumber}`);
+                if (studentRow) {
+                    studentRow.querySelector('.status').innerText = 'P'; // Mark as Present
+                }
+            });
+        }
+        
+        function extractRollNumbersFromVoice(voiceData) {
+            // Split the spoken words and extract numbers (including single-digit and last two digits)
+            const rollNumbers = voiceData.split(" ").map(word => {
+                const idNumber = word.trim();
+                // Match last two digits or single digit of the roll number (assumed format)
+                const match = idNumber.match(/(\d{1,2})$/); // Regex to capture one or two digits at the end
+                return match ? match[1] : null; // Return the last one or two digits if matched
+            });
+        
+            return rollNumbers.filter(id => id !== null); // Filter out null values
+        }
+        </script>
+        
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
