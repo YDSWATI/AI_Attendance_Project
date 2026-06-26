@@ -22,23 +22,63 @@ def signup(request):
 
     return render(request, 'signup.html')
 
+from django.contrib.auth.hashers import check_password
+
 def user_login(request):
     if request.method == 'POST':
         email = request.POST['email']
         password = request.POST['password']
-        
-        user = authenticate(request, username=email, password=password)
-        
-        if user is not None:
-            login(request, user)
-            return redirect('home')  # Redirect to home page after login
-        else:
-            messages.error(request, "Invalid email or password.")
-    
+
+        try:
+            user = Signup.objects.get(email=email)
+
+            if check_password(password, user.password):
+
+                request.session['user_id'] = user.id
+                request.session['user_email'] = user.email
+                request.session['user_name'] = user.name
+
+                return redirect('home')
+
+            else:
+                messages.error(request, "Invalid password")
+
+        except Signup.DoesNotExist:
+            messages.error(request, "User does not exist")
+
     return render(request, 'login.html')
 
-@login_required
+
 def home(request):
+
+    user_id = request.session.get("user_id")
+
+    if not user_id:
+        return redirect("login")
+
+    user_instance = Signup.objects.get(id=user_id)
+
+    if request.method == "POST":
+        course_name = request.POST.get('course_name')
+
+        if course_name:
+            Course.objects.create(
+                name=course_name,
+                user=user_instance
+            )
+
+            return redirect('home')
+
+    courses = Course.objects.filter(user=user_instance)
+
+    return render(
+        request,
+        'home.html',
+        {
+            'user': user_instance,
+            'courses': courses
+        }
+    )
     if request.method == "POST":
         course_name = request.POST.get('course_name')
         if course_name:
@@ -51,10 +91,10 @@ def home(request):
     return render(request, 'home.html', {'user': user_instance, 'courses': courses})
 
 def user_logout(request):
-    logout(request)
+    request.session.flush()
     return redirect('login')
 
-@login_required
+# @login_required
 def register_students(request, course_id):
     course = get_object_or_404(Course, id=course_id)
     students = Student.objects.filter(course=course)
@@ -62,6 +102,7 @@ def register_students(request, course_id):
     if request.method == 'POST':
         name = request.POST.get('name')
         roll_number = request.POST.get('roll_number')
+        email = request.POST.get('email')
 
         if name and roll_number:
             try:
@@ -71,6 +112,7 @@ def register_students(request, course_id):
                     course=course,
                     name=name,
                     roll_number=roll_number,
+                    email=email,
                     student_id=student_id
                 )
                 return redirect('register', course_id=course.id)  # Redirect after successful registration
@@ -79,7 +121,7 @@ def register_students(request, course_id):
 
     return render(request, 'register.html', {'course': course, 'students': students})
 
-@login_required
+# @login_required
 
 def take_attendance(request, course_id):
     course = get_object_or_404(Course, id=course_id)
@@ -164,6 +206,77 @@ def show_attendance(request, course_id):
     }
     return render(request, 'show_attendance.html', context)
 
+# In your views.py — add these imports at the top and the two functions below
+# Make sure agent.py is inside your Django app folder
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+
+# Import your agent
+from .agent import run_agent   # if agent.py is inside your app folder
+
+
+# ─────────────────────────────────────────────
+# View 1: Render the full-screen chat page
+# ─────────────────────────────────────────────
+# This just returns the ai_chat.html template.
+# @login_required means only logged-in teachers can access it.
+
+def ai_chat_page(request):
+
+    if not request.session.get("user_id"):
+        return redirect("login")
+
+    return render(request, "chat.html")
+
+
+# ─────────────────────────────────────────────
+# View 2: Handle chat messages (AJAX endpoint)
+# ─────────────────────────────────────────────
+# The frontend sends: POST /ai-chat/  with JSON { "message": "..." }
+# This view:
+#   1. Gets the message
+#   2. Gets the current teacher's user id
+#   3. Calls run_agent() from agent.py
+#   4. Returns the reply as JSON { "reply": "..." }
+
+
+@csrf_exempt   # We handle CSRF via JS header in ai_chat.html
+def ai_chat_api(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    try:
+        # Parse the JSON body sent from frontend
+        body    = json.loads(request.body)
+        message = body.get("message", "").strip()
+
+        if not message:
+            return JsonResponse({"reply": "Please type a message."})
+
+        # Get the logged-in teacher's id
+        # request.session["user_id"] — because you use a custom Signup model
+        # (not Django's built-in User), you stored id in session during login
+        user_id = request.session.get("user_id")
+
+        print("USER ID:", user_id)
+        print("SESSION:", dict(request.session))
+
+        if not user_id:
+            return JsonResponse({"reply": "Session expired. Please login again."})
+
+        reply = run_agent(message, user_id)
+
+
+        return JsonResponse({"reply": reply})
+
+    except Exception as e:
+        # Always return something to frontend even if there's an error
+        print(f"Agent error: {e}")   # shows in your terminal for debugging
+        return JsonResponse({"reply": f"Something went wrong: {str(e)}"})
 
 
  

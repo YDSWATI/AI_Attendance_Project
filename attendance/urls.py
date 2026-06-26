@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import home, signup, user_login ,user_logout,register_students,take_attendance,attendance_success,show_attendance
+from .views import home, signup, user_login ,user_logout,register_students,take_attendance,attendance_success,show_attendance,ai_chat_page,ai_chat_api
 
 urlpatterns = [
     path('home', home, name='home'),
@@ -11,6 +11,8 @@ urlpatterns = [
     path('attendance/<int:course_id>/', take_attendance, name='attendance'),
     path('status/<int:course_id>/', show_attendance, name='show_attendance'),
     path('success/', attendance_success, name='attendance_success'),
+    path('chat/', ai_chat_page, name='ai_chat'),     # full screen chat page
+    path('ai-chat/', ai_chat_api, name='ai_chat_api'),
     
 ]
 

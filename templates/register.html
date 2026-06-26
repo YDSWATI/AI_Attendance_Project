@@ -101,6 +101,7 @@
                     <div class="student-item">
                         <div>{{ student.name }}</div>
                         <div>Roll No: {{ student.roll_number }}</div>
+                        <div>Email: {{ student.email }}</div>
                     </div>
                 {% empty %}
                     <div class="student-item">No students registered yet.</div>
@@ -127,6 +128,9 @@
                 <label for="roll_number">Roll Number</label>
                 <input type="text" name="roll_number" id="roll_number" placeholder="Enter roll number" required>
 
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email"
+                    placeholder="Enter student email" required>
                 <button type="submit">Register Student</button>
 
                 {% if error %}

@@ -29,19 +29,30 @@ class Course(models.Model):
 
 # Student model for registering students in courses
 class Student(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Link to Course model
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+
     name = models.CharField(max_length=255)
-    roll_number = models.CharField(max_length=50, unique=True)  # Unique roll number
-    student_id = models.IntegerField(null=True, unique=True)  # Make student_id nullable
+
+    roll_number = models.CharField(
+        max_length=50,
+        unique=True
+    )
+
+    student_id = models.IntegerField(
+        null=True,
+        unique=True
+    )
+
+    email = models.EmailField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
 
     def save(self, *args, **kwargs):
-        # Extract last two characters from roll_number and convert them to an integer for student_id
-        if not self.student_id and self.roll_number[-2:].isdigit():  # Check if the last two are digits
-            self.student_id = int(self.roll_number[-2:])  # Convert last two characters to an integer
+        if not self.student_id and self.roll_number[-2:].isdigit():
+            self.student_id = int(self.roll_number[-2:])
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.name} (Roll No: {self.roll_number})"
 
 # Attendance model to store student attendance data datewise
 class Attendance(models.Model):
